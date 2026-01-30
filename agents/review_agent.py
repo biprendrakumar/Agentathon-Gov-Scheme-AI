@@ -1,4 +1,4 @@
-from utils.language_utils import localize_benefit
+from utils.language_utils import localize_benefit, localize_name, localize_steps
 
 
 class ReviewAgent:
@@ -18,6 +18,8 @@ class ReviewAgent:
             s_copy = s.copy()
             s_copy["benefit_original"] = s_copy.get("benefit")
             s_copy["benefit"] = localize_benefit(s_copy["benefit"], language)
+            s_copy["name"] = localize_name(s_copy["name"], language)
+            s_copy["steps"] = localize_steps(s_copy["steps"], language)
             localized.append(s_copy)
 
         return localized

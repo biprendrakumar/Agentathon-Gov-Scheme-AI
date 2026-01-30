@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 
 
 class WebResearchAgent:
-    """Simple focused web crawler to find government policy pages.
+    """Simple focused web crawler and API fetcher to find government policy pages.
 
     Notes:
     - This is a lightweight, opinionated crawler for demonstration only.
@@ -68,17 +68,46 @@ class WebResearchAgent:
         excerpt = p.get_text(strip=True) if p else ""
         return title, excerpt
 
+    def _fetch_from_api(self, query: str = "scheme", max_results: int = 20):
+        """Fetch government scheme data from data.gov.in API."""
+        api_url = "https://api.data.gov.in/resource"
+        params = {
+            "api-key": "579b464db66ec23bdd000001cdd3946e44ce4acd7449ff9ae9f6e5e101",  # Free API key (replace with your own if needed)
+            "format": "json",
+            "limit": max_results,
+            "filters[title]": query
+        }
+        try:
+            resp = requests.get(api_url, params=params, timeout=10)
+            if resp.status_code == 200:
+                data = resp.json()
+                results = []
+                for record in data.get("records", []):
+                    results.append({
+                        "name": record.get("title", "Unknown Scheme"),
+                        "url": record.get("source", ""),
+                        "summary": record.get("description", "")
+                    })
+                return results
+        except requests.RequestException:
+            pass
+        return []
+
     def find_policies(self, seeds: List[str] = None, max_results: int = 20):
-        """Crawl seed pages and return discovered policy-like pages.
+        """Crawl seed pages and return discovered policy-like pages, augmented with API data.
 
         Returns a list of dicts with `name`, `url`, and `summary`.
         """
+        # First, try to fetch from API
+        api_results = self._fetch_from_api(max_results=max_results // 2)
+        
+        # Then, crawl for additional results
         seeds = seeds or self.DEFAULT_SEEDS
         visited = set()
         q = deque(seeds)
         found = []
 
-        while q and len(visited) < self.max_pages and len(found) < max_results:
+        while q and len(visited) < self.max_pages and len(found) < (max_results - len(api_results)):
             url = q.popleft()
             if url in visited:
                 continue
@@ -102,4 +131,5 @@ class WebResearchAgent:
                 if link not in visited and self._is_allowed(link):
                     q.append(link)
 
-        return found
+        # Combine API and crawled results
+        return api_results + found

@@ -1,18 +1,59 @@
 import streamlit as st
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from core.coordinator import CoordinatorAgent
 
-st.title("🇮🇳 Government Scheme AI Agent")
+# Translations dictionary
+translations = {
+    "en": {
+        "title": "🇮🇳 Government Scheme AI Agent",
+        "age": "Age",
+        "income": "Annual Income",
+        "occupation": "Occupation",
+        "language": "Language",
+        "occupations": ["student", "farmer", "worker"],
+        "languages": ["en", "hi"],
+        "button": "Find Government Schemes",
+        "no_schemes": "No schemes found",
+        "benefit": "Benefit:",
+        "how_to_apply": "How to Apply:"
+    },
+    "hi": {
+        "title": "🇮🇳 सरकारी योजना AI एजेंट",
+        "age": "आयु",
+        "income": "वार्षिक आय",
+        "occupation": "व्यवसाय",
+        "language": "भाषा",
+        "occupations": ["छात्र", "किसान", "मजदूर"],
+        "languages": ["English", "हिंदी"],
+        "button": "सरकारी योजनाएं खोजें",
+        "no_schemes": "कोई योजना नहीं मिली",
+        "benefit": "लाभ:",
+        "how_to_apply": "आवेदन कैसे करें:"
+    }
+}
 
-age = st.number_input("Age", 18, 100)
-income = st.number_input("Annual Income", 0)
-occupation = st.selectbox("Occupation", ["student", "farmer", "worker"])
-language = st.selectbox("Language", ["en", "hi"])
+# Language selection at the top
+language = st.selectbox("Language / भाषा", ["en", "hi"])
 
-if st.button("Find Government Schemes"):
+# Get translations for selected language
+t = translations[language]
+
+st.title(t["title"])
+
+age = st.number_input(t["age"], 18, 100)
+income = st.number_input(t["income"], 0)
+occupation = st.selectbox(t["occupation"], t["occupations"])
+# Note: occupation is passed as is, but for user dict, we need to map back to English for processing
+occupation_map = {"छात्र": "student", "किसान": "farmer", "मजदूर": "worker"}
+user_occupation = occupation_map.get(occupation, occupation)
+
+if st.button(t["button"]):
     user = {
         "age": age,
         "income": income,
-        "occupation": occupation,
+        "occupation": user_occupation,
         "language": language
     }
 
@@ -20,11 +61,11 @@ if st.button("Find Government Schemes"):
     results = agent.run(user)
 
     if not results:
-        st.warning("No schemes found")
+        st.warning(t["no_schemes"])
     else:
         for s in results:
             st.subheader(s["name"])
-            st.write("**Benefit:**", s["benefit"])
-            st.write("**How to Apply:**")
+            st.write(f"**{t['benefit']}**", s["benefit"])
+            st.write(f"**{t['how_to_apply']}**")
             for step in s["steps"]:
                 st.write("•", step)
